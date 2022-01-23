@@ -1,0 +1,8 @@
+- try skewed probability transitions
+	- ***IMPORTANT***: make sure the state transitions and transition rewards are same as the other experiments
+		- just replace the probabilities only
+- try different branching factors
+- try bigger state representation size for muzero
+- try more simulations for muzero
+
+- maybe try transition rewards sampled from a non-uniform distribution?
