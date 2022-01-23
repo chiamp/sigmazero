@@ -1,5 +1,3 @@
-##import gym
-
 from tensorflow.keras.models import Model,save_model,load_model
 from tensorflow.keras.layers import Input,Dense,Concatenate
 
@@ -7,69 +5,6 @@ import numpy as np
 
 import os
 
-
-##class Game: # wrapper for gym env
-##    """
-##    A wrapper class for gym environments. Keeps track of the history of the game.
-##    """
-##    
-##    def __init__(self,config):
-##        """
-##        Constructor method for the Game class.
-##        
-##        Args:
-##            config (dict): A dictionary specifying parameter configurations
-##            
-##        Attributes:
-##            env (gym.wrappers.time_limit.TimeLimit): The gym environment
-##            action_size (int): The number of possible actions in env's action space
-##
-##            current_state (numpy.ndarray): The numpy array representation of env's current state
-##            at_terminal_state (bool): True if env is at a terminal state, False otherwise
-##
-##            state_history (list[numpy.ndarray]): Contains a list of past states visited during this game
-##            action_history (list[numpy.ndarray]): Contains a list of past actions applied to the env (actions are one-hot encoded into a vector)
-##            reward_history (list[float]): Contains a list of past transition rewards received from the env
-##
-##            value_history (list[float]): Contains a list of predicted values for each corresponding past state, outputted by MCTS
-##            policy_history (list[numpy.ndarray]): Contains a list of action distributions for each corresponding past state, outputted by MCTS
-##        """
-##        
-##        self.env = gym.make(config['env']['env_name'])
-##        self.env.seed( int( np.random.choice( range(int(1e5)) ) ) ) # since we set a seed for numpy, we can get reproducible results by setting a seed for the gym env, where the seed number is generated from numpy
-##        self.action_size = config['env']['action_size']
-##        
-##        self.current_state = self.env.reset()
-##        self.at_terminal_state = False
-##
-##        self.state_history = [self.current_state.reshape(1,-1)] # starts at t = 0
-##        self.action_history = [] # starts at t = 0
-##        self.reward_history = [] # starts at t = 1 (the transition reward for reaching state 1)
-##
-##        self.value_history = [] # starts at t = 0 (from MCTS)
-##        self.policy_history = [] # starts at t = 0 (from MCTS)
-##    def apply_action(self,action_index):
-##        """
-##        Apply the action_index to the game env. Record the resulting state, action and transition reward.
-##        Update whether the resulting state is terminal or not.
-##        
-##        Args:
-##            action_index (int): Represents an action in the game's action space
-##
-##        Returns: None
-##        """
-##        
-##        # this method should never be called when self.at_terminal_state is True
-##        
-##        obs,reward,done,info = self.env.step(action_index)
-##
-##        self.current_state = obs
-##        self.state_history.append(self.current_state.reshape(1,-1))
-##        self.action_history.append( np.array([1 if i==action_index else 0 for i in range(self.action_size)]).reshape(1,-1) )
-##        self.reward_history.append(reward)
-##        self.at_terminal_state = done
-##
-##        if self.at_terminal_state: self.env.close()
 
 class NetworkModel: # neural network model
     """
@@ -93,7 +28,7 @@ class NetworkModel: # neural network model
         """
 
         # building representation function layers
-        obs_input_layer = Input( config['env']['num_states'] + 1 ) # include timestep feature
+        obs_input_layer = Input( config['env']['num_states'] + 1 ) # one-hot encode state space and include timestep feature
         hidden_layer = Dense(config['model']['representation_function']['num_neurons'],activation=config['model']['representation_function']['activation_function'],bias_initializer='glorot_uniform',
                              kernel_regularizer=config['model']['representation_function']['regularizer'],bias_regularizer=config['model']['representation_function']['regularizer'])(obs_input_layer)
         for _ in range(config['model']['representation_function']['num_layers']):
@@ -135,33 +70,7 @@ class NetworkModel: # neural network model
         self.prediction_function = Model(hidden_state_input_layer,[policy_output_layer,value_output_layer])
 
         self.action_size = config['env']['num_actions']
-    def save(self,model_name):
-        """
-        Save the weights of the representation_function, dynamics_function and prediction_function.
-        
-        Args:
-            model_name (str): The filename to use when creating weight files.
-
-        Returns: None
-        """
-        
-        os.mkdir(f'models/{model_name}')
-        self.representation_function.save_weights(f'models/{model_name}/representation_function_weights.h5')
-        self.dynamics_function.save_weights(f'models/{model_name}/dynamics_function_weights.h5')
-        self.prediction_function.save_weights(f'models/{model_name}/prediction_function_weights.h5')
-    def load(self,model_name):
-        """
-        Load the weights of the representation_function, dynamics_function and prediction_function into this NetworkModel.
-        
-        Args:
-            model_name (str): The filename of the weight files to load into this NetworkModel.
-
-        Returns: None
-        """
-        self.representation_function.load_weights(f'models/{model_name}/representation_function_weights.h5')
-        self.dynamics_function.load_weights(f'models/{model_name}/dynamics_function_weights.h5')
-        self.prediction_function.load_weights(f'models/{model_name}/prediction_function_weights.h5')
-
+    
 class Node:
     """
     A class that represents the nodes used in Monte Carlo Tree Search.
@@ -296,34 +205,34 @@ class ReplayBuffer:
             config (dict): A dictionary specifying parameter configurations
 
         Attributes:
-            buffer (list[Game]): Buffer that stores Game objects.
+            buffer (list[StochasticWorld]): Buffer that stores StochasticWorld objects.
             buffer_size (int): Indicates the maximum size of the buffer
-            sample_size (int): Indicates how many Games to sample from the buffer when we call the sample() method
+            sample_size (int): Indicates how many game trajectories to sample from the buffer when we call the sample() method
         """
         
-        self.buffer = [] # list of Game objects, that contain the state, action, reward, MCTS policy, and MCTS value history
+        self.buffer = [] # list of StochasticWorld objects, that contain the state, action, reward, MCTS policy, and MCTS value history
         self.buffer_size = int(config['replay_buffer']['buffer_size'])
         self.sample_size = int(config['replay_buffer']['sample_size'])
     def add(self,game):
         """
-        Add the game to the ReplayBuffer. Remove the oldest Game entry if the size of the buffer exceeds buffer_size (which is set by the config parameter upon instantiation).
+        Add the game to the ReplayBuffer. Remove the oldest StochasticWorld entry if the size of the buffer exceeds buffer_size (which is set by the config parameter upon instantiation).
         
         Args:
-            game (Game): The Game to add to the ReplayBuffer
+            game (StochasticWorld): The StochasticWorld game instance to add to the ReplayBuffer
 
         Returns: None
         """
         
         if len(self.buffer) >= self.buffer_size: self.buffer.pop(0)
         self.buffer.append(game)
-    def sample(self): # sample a number of games from self.buffer, specified by the config parameter
+    def sample(self): # sample a number of game trajectories from self.buffer, specified by the config parameter
         """
-        Sample a number of Games from the buffer equal to sample_size (which is set by the config parameter upon instantiation).
+        Sample a number of game trajectories from the buffer equal to sample_size (which is set by the config parameter upon instantiation).
         
         Args: None
 
         Returns:
-            game_samples (list[Game]): A list of sampled Games to be used to train the NetworkModel weights
+            game_samples (list[StochasticWorld]): A list of sampled StochasticWorld games to be used to train the NetworkModel weights
         """
         
         if len(self.buffer) <= self.sample_size: return self.buffer.copy()

@@ -1,5 +1,3 @@
-##import gym
-
 from tensorflow.keras.models import Model,save_model,load_model
 from tensorflow.keras.layers import Input,Dense,Concatenate
 
@@ -7,69 +5,6 @@ import numpy as np
 
 import os
 
-
-##class Game: # wrapper for gym env
-##    """
-##    A wrapper class for gym environments. Keeps track of the history of the game.
-##    """
-##    
-##    def __init__(self,config):
-##        """
-##        Constructor method for the Game class.
-##        
-##        Args:
-##            config (dict): A dictionary specifying parameter configurations
-##            
-##        Attributes:
-##            env (gym.wrappers.time_limit.TimeLimit): The gym environment
-##            action_size (int): The number of possible actions in env's action space
-##
-##            current_state (numpy.ndarray): The numpy array representation of env's current state
-##            at_terminal_state (bool): True if env is at a terminal state, False otherwise
-##
-##            state_history (list[numpy.ndarray]): Contains a list of past states visited during this game
-##            action_history (list[numpy.ndarray]): Contains a list of past actions applied to the env (actions are one-hot encoded into a vector)
-##            reward_history (list[float]): Contains a list of past transition rewards received from the env
-##
-##            value_history (list[float]): Contains a list of predicted values for each corresponding past state, outputted by MCTS
-##            policy_history (list[numpy.ndarray]): Contains a list of action distributions for each corresponding past state, outputted by MCTS
-##        """
-##        
-##        self.env = gym.make(config['env']['env_name'])
-##        self.env.seed( int( np.random.choice( range(int(1e5)) ) ) ) # since we set a seed for numpy, we can get reproducible results by setting a seed for the gym env, where the seed number is generated from numpy
-##        self.action_size = config['env']['action_size']
-##        
-##        self.current_state = self.env.reset()
-##        self.at_terminal_state = False
-##
-##        self.state_history = [self.current_state.reshape(1,-1)] # starts at t = 0
-##        self.action_history = [] # starts at t = 0
-##        self.reward_history = [] # starts at t = 1 (the transition reward for reaching state 1)
-##
-##        self.value_history = [] # starts at t = 0 (from MCTS)
-##        self.policy_history = [] # starts at t = 0 (from MCTS)
-##    def apply_action(self,action_index):
-##        """
-##        Apply the action_index to the game env. Record the resulting state, action and transition reward.
-##        Update whether the resulting state is terminal or not.
-##        
-##        Args:
-##            action_index (int): Represents an action in the game's action space
-##
-##        Returns: None
-##        """
-##        
-##        # this method should never be called when self.at_terminal_state is True
-##        
-##        obs,reward,done,info = self.env.step(action_index)
-##
-##        self.current_state = obs
-##        self.state_history.append(self.current_state.reshape(1,-1))
-##        self.action_history.append( np.array([1 if i==action_index else 0 for i in range(self.action_size)]).reshape(1,-1) )
-##        self.reward_history.append(reward)
-##        self.at_terminal_state = done
-##
-##        if self.at_terminal_state: self.env.close()
 
 class NetworkModel: # neural network model
     """
@@ -95,7 +30,7 @@ class NetworkModel: # neural network model
         self.stochastic_branching_factor = config['model']['stochastic_branching_factor']
 
         # building representation function layers
-        obs_input_layer = Input( config['env']['num_states'] + 1 ) # include timestep feature
+        obs_input_layer = Input( config['env']['num_states'] + 1 ) # one-hot encode state space and include timestep feature
         hidden_layer = Dense(config['model']['representation_function']['num_neurons'],activation=config['model']['representation_function']['activation_function'],bias_initializer='glorot_uniform',
                              kernel_regularizer=config['model']['representation_function']['regularizer'],bias_regularizer=config['model']['representation_function']['regularizer'])(obs_input_layer)
         for _ in range(config['model']['representation_function']['num_layers']):
@@ -115,18 +50,15 @@ class NetworkModel: # neural network model
         for _ in range(config['model']['dynamics_function']['num_layers']):
             hidden_layer = Dense(config['model']['dynamics_function']['num_neurons'],activation=config['model']['dynamics_function']['activation_function'],bias_initializer='glorot_uniform',
                                  kernel_regularizer=config['model']['dynamics_function']['regularizer'],bias_regularizer=config['model']['dynamics_function']['regularizer'])(hidden_layer)
+        # output stochastic_branching_factor hidden state representations, stochastic_branching_factor corresponding transition rewards and stochastic_branching_factor corresponding transition probabilities
         hidden_state_output_layer = Dense( config['model']['hidden_state_size'] * self.stochastic_branching_factor ,activation=config['model']['dynamics_function']['activation_function'],bias_initializer='glorot_uniform',
                                           kernel_regularizer=config['model']['dynamics_function']['regularizer'],bias_regularizer=config['model']['dynamics_function']['regularizer'])(hidden_layer)
         transition_reward_output_layer = Dense(self.stochastic_branching_factor,activation='linear',bias_initializer='glorot_uniform',
                                                kernel_regularizer=config['model']['dynamics_function']['regularizer'],bias_regularizer=config['model']['dynamics_function']['regularizer'])(hidden_layer)
         transition_probability_output_layer = Dense(self.stochastic_branching_factor,activation='softmax',bias_initializer='glorot_uniform',
                                                     kernel_regularizer=config['model']['dynamics_function']['regularizer'],bias_regularizer=config['model']['dynamics_function']['regularizer'])(hidden_layer)
-
-##        hidden_state_output_layer = Reshape( ( self.stochastic_branching_factor , config['model']['hidden_state_size'] ) )(hidden_state_output_layer)
-##        transition_reward_output_layer = Reshape( ( self.stochastic_branching_factor , 1 ) )(transition_reward_output_layer)
-##        transition_probability_output_layer = Reshape( ( self.stochastic_branching_factor , 1 ) )(transition_probability_output_layer)
         
-        self.dynamics_function = Model([hidden_state_input_layer,action_input_layer],[hidden_state_output_layer,transition_reward_output_layer,transition_probability_output_layer])
+        self.dynamics_function = Model([hidden_state_input_layer,action_input_layer],[hidden_state_output_layer,transition_reward_output_layer,transition_probability_output_layer]) # output (hidden_state_representations,transition_rewards,transition_probabilities)
 
         # building prediction function layers
         hidden_state_input_layer = Input(config['model']['hidden_state_size'])
@@ -141,34 +73,6 @@ class NetworkModel: # neural network model
                                    kernel_regularizer=config['model']['prediction_function']['regularizer'],bias_regularizer=config['model']['prediction_function']['regularizer'])(hidden_layer)
         
         self.prediction_function = Model(hidden_state_input_layer,[policy_output_layer,value_output_layer])
-
-        
-    def save(self,model_name):
-        """
-        Save the weights of the representation_function, dynamics_function and prediction_function.
-        
-        Args:
-            model_name (str): The filename to use when creating weight files.
-
-        Returns: None
-        """
-        
-        os.mkdir(f'models/{model_name}')
-        self.representation_function.save_weights(f'models/{model_name}/representation_function_weights.h5')
-        self.dynamics_function.save_weights(f'models/{model_name}/dynamics_function_weights.h5')
-        self.prediction_function.save_weights(f'models/{model_name}/prediction_function_weights.h5')
-    def load(self,model_name):
-        """
-        Load the weights of the representation_function, dynamics_function and prediction_function into this NetworkModel.
-        
-        Args:
-            model_name (str): The filename of the weight files to load into this NetworkModel.
-
-        Returns: None
-        """
-        self.representation_function.load_weights(f'models/{model_name}/representation_function_weights.h5')
-        self.dynamics_function.load_weights(f'models/{model_name}/dynamics_function_weights.h5')
-        self.prediction_function.load_weights(f'models/{model_name}/prediction_function_weights.h5')
 
 class Node:
     """
@@ -185,10 +89,11 @@ class Node:
         Attributes:
             prior (float): The prior probability assigned to this Node upon instantiation, obtained from the argument
 
-            hidden_state (numpy.ndarray): The hidden state representation of this Node, obtained from either the representation or dynamics function of the NetworkModel
-            transition_reward (float): The predicted transition reward as a result of transitioning to this Node from the parent state, obtained from the dynamics function of the NetworkModel
+            hidden_state (numpy.ndarray): The hidden state representation of all stochastic states from this Node, obtained from either the representation or dynamics function of the NetworkModel
+            transition_reward (float): The predicted expected transition reward as a result of transitioning to this Node from the parent Node, obtained from the dynamics function of the NetworkModel
+            transition_probabilities (numpy.ndarray): The predicted transition probabilities of transitioning to every stochastic state in this node from the root
             policy (numpy.ndarray): The predicted action distribution, obtained from applying the prediction function to this Node's hidden_state (the values will serve as priors for the children of this Node)
-            value (float): The predicted value of this Node, obtained from applying the prediction function to this Node's hidden_state
+            value (float): The predicted expected value of this Node, obtained from applying the prediction function to this Node's hidden_state
 
             is_expanded (bool): True if this Node is expanded, False otherwise
             children (list[Node]): Contains a list of this Node's children
@@ -199,10 +104,10 @@ class Node:
         
         self.prior = prior # prior probability given by the output of the prediction function of the parent node
         
-        self.hidden_state = None # from dynamics function
+        self.hidden_state = None # from dynamics function; a (all_nodes x hidden_state_features) matrix, where each row is a possible stochastic representation of this node
         self.transition_reward = 0 # from dynamics function
-        self.transition_probabilities = None
-        self.policy = None # from prediction function
+        self.transition_probabilities = None # from dynamics function; a (all_nodes x 1) vector, where each value denotes the probability of reaching that specific stochastic state representation from the root node
+        self.policy = None # from prediction function; a vector, where each value denotes the prior probability for each action
         self.value = None # from prediction function
 
         self.is_expanded = False
@@ -212,14 +117,12 @@ class Node:
         self.num_visits = 0
     def expand_node(self,parent_node,parent_action,network_model):
         """
-        Expand this Node. Use the dynamics function on parent_hidden_state and parent_action to get this Node's hidden state representation and transition reward.
-        Then use the prediction function on this Node's hidden state representation to get this Node's value and the prior probabilities of this Node's children.
+        Expand this Node. Use the dynamics function on parent_hidden_state and parent_action to get this Node's hidden state representations and corresponding transition rewards for all resulting stochastic states.
+        Then use the prediction function on this Node's hidden state representations to get this Node's values and the prior probabilities for every stochastic state representation of this Node.
         
         Args:
-            parent_hidden_state (numpy.ndarray): The hidden state representation of this Node's parent
-            parent_action (numpy.ndarray): The corresponding action vector taken from this Node's parent to get to this Node
-            parent_node (Node):  ***TODO***
-            parent_transition_probabilities: ***TODO*** shape(parent_node,1)
+            parent_node (Node): This node's parent; the parent node's hidden state representation will be passed into the dynamics function, and the parent node's transition probabilities will be used to calculate this node's transition probabilities
+            parent_action (numpy.ndarray): A (num_parent_nodes x action_space) matrix, where each row is an identical one-hot vector, denoting the corresponding action index taken from this Node's parent to get to this Node
             network_model (NetworkModel): The NetworkModel's dynamics function and prediction function will be used to expand this Node
 
         Returns: None
@@ -229,18 +132,15 @@ class Node:
         hidden_states,transition_rewards,transition_probabilities = network_model.dynamics_function( [ parent_node.hidden_state , parent_action ] )
         self.hidden_state = hidden_states.numpy().reshape( -1 , parent_node.hidden_state.shape[1] ) # convert ( sample x ( branching_factor x hidden_state_dimension ) ) to ( (sample x branching_factor) x hidden_state_dimension )
         self.transition_probabilities = ( parent_node.transition_probabilities * transition_probabilities.numpy() ).reshape(-1,1) # multiply (parent_node,1) along the axis=1 of (parent_node x child_nodes), then flatten to (all_child_nodes,1)
-##        self.transition_reward = transition_reward.numpy()[0][0] # convert to scalar
         self.transition_reward = ( transition_rewards.numpy().reshape(-1,1) * self.transition_probabilities ).sum() # reshape (parent_node,child_node) to (all_child_nodes,1) and multiply by corresponding transition probabilities, then sum them all up
 
         # get predicted policy and value
         policies,values = network_model.prediction_function( self.hidden_state )
         self.policy = ( policies.numpy() * self.transition_probabilities ).sum(axis=0) # multiply (all_child_nodes,action_index) action probabilities with (all_child_nodes,1) transition probabilities along the axis=1, then sum up all expected action probabilities for each action_index
-##        self.value = value.numpy()[0][0] # convert to scalar
         self.value = ( values.numpy() * self.transition_probabilities ).sum() # multiply (all_child_nodes,1) values with (all_child_nodes,1) transition probabilities, then sum them all up
 
         # instantiate child Node's with prior values, obtained from the predicted policy
         for action in range(network_model.action_size):
-##            self.children.append( Node(self.policy.numpy()[0][action]) )
             self.children.append( Node(self.policy[action]) )
             
         self.is_expanded = True
@@ -257,14 +157,14 @@ class Node:
         Returns: None
         """
         
-        # same as self.expand_node() method, except representation function is used to get this node's hidden state
+        # similar to self.expand_node() method, except representation function is used to get this node's hidden state
         # therefore there's no corresponding predicted transition reward for the root node
 
         # get hidden state representation
         hidden_state = network_model.representation_function(current_state).numpy()
         self.hidden_state = hidden_state
         self.transition_reward = 0 # no transition reward for the root node
-        self.transition_probabilities = np.array([[1]])
+        self.transition_probabilities = np.array([[1]]) # the transition probability for the root node is always 1; this value will be used by all child nodes to calculate their corresponding transition probabilities, based on the search path
 
         # get predicted policy and value
         policy,value = network_model.prediction_function( self.hidden_state )
@@ -312,34 +212,34 @@ class ReplayBuffer:
             config (dict): A dictionary specifying parameter configurations
 
         Attributes:
-            buffer (list[Game]): Buffer that stores Game objects.
+            buffer (list[StochasticWorld]): Buffer that stores StochasticWorld objects.
             buffer_size (int): Indicates the maximum size of the buffer
-            sample_size (int): Indicates how many Games to sample from the buffer when we call the sample() method
+            sample_size (int): Indicates how many game trajectories to sample from the buffer when we call the sample() method
         """
         
-        self.buffer = [] # list of Game objects, that contain the state, action, reward, MCTS policy, and MCTS value history
+        self.buffer = [] # list of StochasticWorld objects, that contain the state, action, reward, MCTS policy, and MCTS value history
         self.buffer_size = int(config['replay_buffer']['buffer_size'])
         self.sample_size = int(config['replay_buffer']['sample_size'])
     def add(self,game):
         """
-        Add the game to the ReplayBuffer. Remove the oldest Game entry if the size of the buffer exceeds buffer_size (which is set by the config parameter upon instantiation).
+        Add the game to the ReplayBuffer. Remove the oldest StochasticWorld entry if the size of the buffer exceeds buffer_size (which is set by the config parameter upon instantiation).
         
         Args:
-            game (Game): The Game to add to the ReplayBuffer
+            game (StochasticWorld): The StochasticWorld game instance to add to the ReplayBuffer
 
         Returns: None
         """
         
         if len(self.buffer) >= self.buffer_size: self.buffer.pop(0)
         self.buffer.append(game)
-    def sample(self): # sample a number of games from self.buffer, specified by the config parameter
+    def sample(self): # sample a number of game trajectories from self.buffer, specified by the config parameter
         """
-        Sample a number of Games from the buffer equal to sample_size (which is set by the config parameter upon instantiation).
+        Sample a number of game trajectories from the buffer equal to sample_size (which is set by the config parameter upon instantiation).
         
         Args: None
 
         Returns:
-            game_samples (list[Game]): A list of sampled Games to be used to train the NetworkModel weights
+            game_samples (list[StochasticWorld]): A list of sampled StochasticWorld games to be used to train the NetworkModel weights
         """
         
         if len(self.buffer) <= self.sample_size: return self.buffer.copy()
