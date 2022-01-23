@@ -92,7 +92,7 @@ The SigmaZero algorithm can be summarized as follows:
 
 ## Environment
 
-## Results
+## Results and Discussion
 
 ## Comparisons
 * greater power to describe stochastic states, at the cost of greater memory requirements
