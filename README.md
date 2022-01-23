@@ -49,8 +49,45 @@ The MuZero algorithm can be summarized as follows:
 				* this predicted value <img src="https://render.githubusercontent.com/render/math?math=v^{t%2B1}"> is matched to the value outputted by MCTS at that time step in that game trajectory
 			* update the weights of the representation, dynamics and prediction function based on these three targets
 
+## Monte Carlo Tree Search in Stochastic Environments
+
+MCTS requires a model of the environment when expanding leaf nodes during its search. The environment model takes in a state and action and outputs the resulting state and transition reward; this is the functional definition of the dynamics function, <img src="https://render.githubusercontent.com/render/math?math=g(s^k,a^{k%2B1}) \rightarrow s^{k%2B1},r^{k%2B1}">, which approximates the true environment model. This works for deterministic environments where there is a single outcome for any action applied to any state.
+
+In stochastic environments, the functional definition of the environment model changes. Given a state and action, the environment model instead outputs a **set** of possible resulting states, transition rewards and the corresponding probabilities of those outcomes occurring. To approximate this environment model, we can re-define the dynamics function as: <img src="https://render.githubusercontent.com/render/math?math=g(s^k,a^{k%2B1}) \rightarrow [s^{k%2B1}_1,...,s^{k%2B1}_b],[r^{k%2B1}_1,...,r^{k%2B1}_b],[p^{k%2B1}_1,...,p^{k%2B1}_b]">, where <img src="https://render.githubusercontent.com/render/math?math=p^{k%2B1}_i"> is the predicted probability that applying action <img src="https://render.githubusercontent.com/render/math?math=a^{k%2B1}"> to state <img src="https://render.githubusercontent.com/render/math?math=s^k">, results in the predicted state <img src="https://render.githubusercontent.com/render/math?math=s^{k%2B1}_i"> with transition reward <img src="https://render.githubusercontent.com/render/math?math=r^{k%2B1}_i">.
+
+Given a current state <img src="https://render.githubusercontent.com/render/math?math=s"> and action <img src="https://render.githubusercontent.com/render/math?math=a">, a perfect environment model would output a corresponding probability for every possible transition sequence <img src="https://render.githubusercontent.com/render/math?math=s,a \rightarrow s^',r">, where <img src="https://render.githubusercontent.com/render/math?math=s^'"> is the resulting state and <img src="https://render.githubusercontent.com/render/math?math=r"> is the resulting transition reward. To approximate this with the dynamics function, we would need to define the function to output a number of predicted transitions <img src="https://render.githubusercontent.com/render/math?math=(s^{k%2B1}_i,r^{k%2B1}_i,p^{k%2B1}_i)"> equal to all possible transitions of the environment. This requires additional knowledge of the environment's state space, reward space and transition dynamics.
+
+Instead we define a **stochastic branching factor** hyperparameter  <img src="https://render.githubusercontent.com/render/math?math=b"> which sets and limits the number of predicted transitions the dynamics function can output. MCTS can then use this modified dynamics function to expand nodes and account for stochastic outcomes.
+
+DIAGRAMS OF MCTS COMPARISON BETWEEN MUZERO AND SIGMAZERO
+
 ## SigmaZero
-* SigmaZero (Stochastic MuZero)
+
+### Algorithm Overview
+The SigmaZero algorithm can be summarized as follows:
+* loop for a number of episodes:
+	* at every time step <img src="https://render.githubusercontent.com/render/math?math=t"> of the episode:
+		* perform Monte Carlo tree search (MCTS)
+			* pass the current observation of the environment <img src="https://render.githubusercontent.com/render/math?math=o_t"> to the representation function, <img src="https://render.githubusercontent.com/render/math?math=h(o_t) \rightarrow s^0">, and get the hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^0"> from the output
+			* pass the hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^0"> into the prediction function, <img src="https://render.githubusercontent.com/render/math?math=f(s^0) \rightarrow p^0,v^0">, and get the predicted policy distribution over actions <img src="https://render.githubusercontent.com/render/math?math=p^0"> and value <img src="https://render.githubusercontent.com/render/math?math=v^0"> from the output
+			* for a number of simulations:
+				* select a leaf node based on maximizing UCB score
+				* expand the node by passing the hidden state representation of its parent node <img src="https://render.githubusercontent.com/render/math?math=s^k"> and its corresponding action <img src="https://render.githubusercontent.com/render/math?math=a^{k%2B1}"> into the dynamics function, <img src="https://render.githubusercontent.com/render/math?math=g(s^k,a^{k%2B1}) \rightarrow s^{k%2B1},r^{k%2B1}">, and get the predicted resulting hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^{k%2B1}"> and transition reward <img src="https://render.githubusercontent.com/render/math?math=r^{k%2B1}"> from the output
+				* pass the resulting hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^{k%2B1}"> into the prediction function, <img src="https://render.githubusercontent.com/render/math?math=f(s^{k%2B1}) \rightarrow p^{k%2B1},v^{k%2B1}">, and get the predicted policy distribution over actions <img src="https://render.githubusercontent.com/render/math?math=p^{k%2B+1}"> and value <img src="https://render.githubusercontent.com/render/math?math=v^{k%2B1}"> from the output
+				* backpropagate the predicted value <img src="https://render.githubusercontent.com/render/math?math=v^{k%2B1}"> up the search path
+		* sample an action based on the visit count of each child node of the root node
+		* apply the sampled action to the environment and observe the resulting transition reward
+	* once the episode is over, save the game trajectory (including the MCTS results) into the replay buffer
+	* sample a number of game trajectories from the replay buffer:
+		* pass the first observation of the environment <img src="https://render.githubusercontent.com/render/math?math=o_0"> from the game trajectory to the representation function, <img src="https://render.githubusercontent.com/render/math?math=h(o_0) \rightarrow s^0"> and get the hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^0"> from the output
+		* pass the hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^0"> into the prediction function, <img src="https://render.githubusercontent.com/render/math?math=f(s^0) \rightarrow p^0,v^0">, and get the predicted policy distribution over actions <img src="https://render.githubusercontent.com/render/math?math=p^0"> and value <img src="https://render.githubusercontent.com/render/math?math=v^0"> from the output
+		* for every time step <img src="https://render.githubusercontent.com/render/math?math=t"> in the game trajectory:
+			* pass the current hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^t"> and the corresponding action <img src="https://render.githubusercontent.com/render/math?math=a^{t%2B1}"> into the dynamics function, <img src="https://render.githubusercontent.com/render/math?math=g(s^t,a^{t%2B1}) \rightarrow s^{t%2B1},r^{t%2B1}">, and get the predicted resulting hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^{t%2B1}"> and transition reward <img src="https://render.githubusercontent.com/render/math?math=r^{t%2B1}"> from the output
+				* this predicted transition reward <img src="https://render.githubusercontent.com/render/math?math=r^{t%2B1}"> is matched to the actual transition reward target received from the environment
+			* pass the resulting hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^{t%2B1}"> into the prediction function, <img src="https://render.githubusercontent.com/render/math?math=f(s^{t%2B1}) \rightarrow p^{t%2B1},v^{t%2B1}">, and get the predicted policy distribution over actions <img src="https://render.githubusercontent.com/render/math?math=p^{t%2B1}"> and value <img src="https://render.githubusercontent.com/render/math?math=v^{t%2B1}"> from the output
+				* this predicted policy distribution <img src="https://render.githubusercontent.com/render/math?math=p^{t%2B1}"> is matched to the child node visit count distribution outputted by MCTS at that time step in that game trajectory
+				* this predicted value <img src="https://render.githubusercontent.com/render/math?math=v^{t%2B1}"> is matched to the value outputted by MCTS at that time step in that game trajectory
+			* update the weights of the representation, dynamics and prediction function based on these three targets
 
 ## Environment
 
@@ -64,54 +101,6 @@ The MuZero algorithm can be summarized as follows:
 ## Future Work
 * merge similar resulting states together
 * disregard low probability resulting states
-
-## Thoughts
-In our effort to make machines more intelligent, we tried to encode our knowledge and expertise of the domain we're working with into the machine. Deep Blue is an example of that; it is a monumental feat of engineering and collaboration between computer scientists and chess grandmasters, working together and pooling their knowledge and experience to create a machine capable of superhuman performance in chess. 
-
-Yet, this approach has its limits. For one, the time and resources required to figure out what domain-specific knowledge would be useful for the machine to have, and then to figure out how to quantify and hard-code this knowledge into a computer system are huge. Secondly, the knowledge we encode into the machine is domain-specific, meaning that encoding a computer system with chess-specific knowledge, will make the computer only good at playing chess. If we wanted to make a machine capable of playing Go at a high level, we would need to find professional Go players and redo the whole process of figuring out what sort of Go knowledge we think is useful to put into the computer system. This process has to be repeated for every unique domain we'd like to create an AI system for, which takes a lot of time and resources. Not to mention the fact that there may be domains that such experts don't exist currently, or the nature of the domain itself makes it hard to quantify a hard-coded evaluation function.
-
-With the advent of machine learning, we can now take a different approach to making machines more intelligent. Rather than telling a machine explicitly what to look out for, and what we consider to be good or bad, we can use neural networks to have the machine learn these values for itself through its own experiences of self-play. AlphaGo was the first step in this direction; because of the nature of the game, coming up with a hard-coded evaluation function for Go was much more difficult compared to chess. So instead, DeepMind decided to let the machine learn for itself. After studying many human games and playing against itself over and over again, it was able to figure out what board positions in Go were considered good or bad, via its own experience. Rather than being provided a hard-coded evaluation function, AlphaGo learned its own evaluation function based on its own experience, and using that, was able to defeat Lee Sedol.
-
-AlphaGo Zero removed the human element; it did not see any human Go games when training, and only learned through self-play. The fact that it was able to defeat AlphaGo 100 games to 0, perhaps hints at the idea that there are limits to knowledge solely derived from humans. Human knowledge of Go is deep; the game has been around for thousands of years, and the theory and strategy has been well developed and studied. Yet the computer program that was devoid of any human knowledge was able to defeat the computer program that was partially trained on human games, 100 games to 0. It seems that the knowledge that we humans have gathered, may not be the most optimal, rather specifically in this example, our human bias served to hinder AlphaGo's performance. Indeed, we find in the research paper that AlphaGo Zero discovered new variations of well-established pattern sequences that humans considered optimal in Go. And now these novel AI discoveries are in turn being studied by professional Go players (mentioned in an [interview](https://youtu.be/uPUEq8d73JI?t=5489) by David Silver, who lead the AlphaGo team). This idea is what makes me very excited as to what other novel things AI algorithms can show us...what other things have we accepted as "optimal", that can actually be improved upon, based on what AI algorithms can discover?
-
-And it's not just in Go. AlphaZero shows us that the same algorithm used to achieve superhuman performance in Go, can also be applied to different domains in chess and shogi. No longer do we have to spend extra time and resources to hard-code domain-specific knowledge into the AI's evaluation functions, when we can use a general reinforcement learning algorithm to learn the evaluation function via self-play. This is extremely exciting, especially for problems in challenging domains where hard-coded evaluation functions are difficult to quantify; for example, in the field of autonomous driving and robots. The fact that AlphaZero was able to exceed Stockfish's performance in chess, considering the fact that Stockfish, at the time, also used hard-coded evaluation functions similar to Deep Blue, gives further credence to the value of this type of reinforcement learning algorithm. 
-
-The elimination of the need to provide a transition model, is another step toward the generalization of this reinforcement learning algorithm. It may seem trivial in the space of board games, where the rules and consequences of actions are well-defined. But for real-world applications, we would need a transition model that mimics the real world, in order to allow the machine to accurately learn and plan future actions accordingly. Unfortunately, the real world isn't as discrete and deterministic as the world of board games; it can be continuous and stochastic, and so the "rules of the world" are not as well-defined. 
-
-Yet humans are able to navigate through this messy world with relative success. Indeed humans have learned a transition model of the world themselves through experience; for example, we can reasonably predict the trajectory of a ball thrown to us to catch it, we know that an object can fall and break if we push it off the table, we can predict how slippery a surface would be to walk on just by looking at it etc. By using our "transition model", i.e. our understanding of "the rules of the game", we can plan accordingly and take actions to achieve our goals. We learn this "transition model" through our own experiences in life, and that's exactly what's happening with MuZero as well. Without being supplied the "rules of the game", it builds a transition model for itself via self-play and using that, plans for hypothetical future situations with MCTS and takes actions to maximize its reward. With this algorithm, we're one step closer towards using artificial intelligence in real world applications.
-
-Artificial intelligence has the potential to solve a lot of problems for us. The fact that it could potentially discover novel things that humans either prematurely dismissed as non-optimal, or never even considered, is exciting to me, especially in the fields of genetics, medicine and energy. I think we're at an exciting period of time where AI technology is expanding at an exponential rate, and I can't wait to see what the future has in store for us!
-
-## What is gym?
-[gym](https://gym.openai.com/envs/) is a suite of virtual environments provided by OpenAI, to test reinforcement learning algorithms on. The suite contains everything from simple text games, to retro Atari games, to even 3D physics simulators.
-
-For this project, I apply the MuZero algorithm to the cart pole environment. The goal of the agent is to balance a pole on a cart, by moving the cart left and right. The agent is incentivized with a reward equal to how long the pole stays balanced on the cart; the longer the pole is kept balanced, the bigger the reward.
-
-Below you can see the progression of the agent learning over time. Initially, it knows nothing of the environment and performs terribly. But gradually through experience, the agent learns "the rules of the game" and figures out an optimal strategy to balance the pole on top of the cart indefinitely.
-
-#### Initial (0 games played)
-![Alt text](assets/cartpole_0_games.gif)
-
-#### After playing 100 games
-![Alt text](assets/cartpole_100_games.gif)
-
-#### After playing 200 games
-![Alt text](assets/cartpole_200_games.gif)
-
-#### After playing 300 games
-![Alt text](assets/cartpole_300_games.gif)
-
-#### After playing 400 games
-![Alt text](assets/cartpole_400_games.gif)
-
-#### After playing 500 games
-![Alt text](assets/cartpole_500_games.gif)
-
-#### After playing 600 games
-![Alt text](assets/cartpole_600_games.gif)
-
-#### After playing 700 games
-![Alt text](assets/cartpole_700_games.gif)
 
 ## MuZero Technical Details
 Below is a description of how the MuZero algorithm works in more detail.
