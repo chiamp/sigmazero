@@ -60,6 +60,7 @@ Given a current state <img src="https://render.githubusercontent.com/render/math
 Instead we define a **stochastic branching factor** hyperparameter  <img src="https://render.githubusercontent.com/render/math?math=b"> which sets and limits the number of predicted transitions the dynamics function can output. MCTS can then use this modified dynamics function to expand nodes and account for stochastic outcomes.
 
 DIAGRAMS OF MCTS COMPARISON BETWEEN MUZERO AND SIGMAZERO
+ALSO EXPLAIN CALCULATING EXPECTED VALUE AND PROBABILITY DISTRIBUTION IN SIGMAZERO COMPARED TO MUZERO WHEN EXPANDING NODES
 
 ## SigmaZero
 
