@@ -34,7 +34,7 @@ def plot(env_stochastic_branching_factor,test_interval):
     plt.plot( range( 0 , len(sigmazero_rewards_1)*test_interval , test_interval ) , sigmazero_rewards_1 ,
               color='red' , linestyle='--' , label=f'sigmazero (stochastic_branching_factor=1)' )
     plt.plot( range( 0 , len(sigmazero_rewards_3)*test_interval , test_interval ) , sigmazero_rewards_3 ,
-              color='yellow' , linestyle='--' , label=f'sigmazero (stochastic_branching_factor=3)' )
+              color='green' , linestyle='--' , label=f'sigmazero (stochastic_branching_factor=3)' )
 
     plt.legend()
     plt.title(f"SigmaZero and MuZero performance on StochasticWorld with a stochastic branching factor of {env_stochastic_branching_factor}")
