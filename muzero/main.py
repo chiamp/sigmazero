@@ -1,5 +1,3 @@
-from gym.wrappers import Monitor
-
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.regularizers import L2
@@ -18,7 +16,7 @@ def self_play(network_model,config):
     """
     This is the main function to call.
     Iteratively perform self-play via Monte Carlo Tree Search (MCTS), and then train the network_model.
-    Every config['self_play']['test_interval'], test the network_model and record the game rendering.
+    Every config['self_play']['test_interval'], test the network_model using greedy action selection and record the average reward received.
 
     Args:
         network_model (NetworkModel): The network model to be trained
@@ -27,26 +25,10 @@ def self_play(network_model,config):
     Returns: None
     """
 
-##    network_model = NetworkModel(config)
-
     if config['env']['env_filename']: game_master = load_env_config(f"{config['env']['env_filename']}")
-    else:
+    else: # create a new StocasticWorld instance with randomly generated transition dynamics according to the config parameters
         game_master = StochasticWorld(config)
-        game_master.save()
-##    game_master = StochasticWorld(config)
-##    game_master = load_env_config('1642304495_541649') # states = 4
-##    game_master = load_env_config('1642401642_91787') # states = 1000
-##    game_master = load_env_config('1642450582_708852') # states 50
-    
-##    game_master = load_env_config('1642545840_114571') # states = 100, seed = 1
-##    game_master = load_env_config('1642555090_3765473') # states = 1000, stdev = 1e-2
-##    game_master = load_env_config('1642607569_4228256') # states = 1000, stdev = 1e0
-##    game_master = load_env_config('1642615219_9242668') # states = 1000, reward = {-100,100}
-##    game_master = load_env_config('1642615441_3073182') # states = 1000, branching_factor = 3
-##    game_master = load_env_config('1642627606_0394158') # states = 1000, timestep_limit = 10
-##    game_master = load_env_config('1642627752_060429') # states = 1000, timestep_limit = 10, stdev = 1e0
-##    game_master = load_env_config('1642639282_9089363') # states = 1000, timestep_limit = 100, reward = {-100,100}
-##    game_master = load_env_config('1642639483_1370673') # states = 1000, timestep_limit = 100, reward = {-100,100} , branching_factor = 3
+        game_master.save() # save this instance
 
     test_rewards = []
     
@@ -65,7 +47,6 @@ def self_play(network_model,config):
         while not game.is_game_over():
             action_index = mcts(game,network_model,get_temperature(num_iter),config)
             game.apply_action(action_index)
-##        print(f'Iteration: {num_iter}\tTotal reward: {sum(game.reward_history)}\tTime elapsed: {(time.time()-start_time)/60} minutes')
 
         # training
         replay_buffer.add(game)
@@ -73,30 +54,24 @@ def self_play(network_model,config):
 
         # save progress
         if (num_iter % config['self_play']['test_interval']) == 0:
-##            timestamp = str(time.time()).replace('.','_')
-##            with open(f"replay_buffers/stochastic_world_{timestamp}.pkl",'wb') as file: pickle.dump(replay_buffer,file)
-##            network_model.save(f"stochastic_world_{timestamp}")
-
             print(f'Iteration: {num_iter}\tTime elapsed: {(time.time()-start_time)/60} minutes')
 
             # test current network_model
             test_rewards.append( test(game_master,network_model,config) )
             with open('test_rewards/test_rewards.pkl','wb') as file: pickle.dump(test_rewards,file)
 
-##    return test_rewards
-
 def mcts(game,network_model,temperature,config): 
     """
-    Perform Monte Carlo Tree Search (MCTS) on the current game state, and return an action index that indicates what action to take.
+    Perform Monte Carlo Tree Search (MCTS) on the current environment state, and return an action index that indicates what action to take.
 
     Args:
-        game (Game): The game object, containing the current state of the game
+        game (StochasticWorld): The StochasticWorld object, containing the current state of the environment
         network_model (NetworkModel): The network model will be used for inference to conduct MCTS
         temperature (float): Controls the level of exploration of MCTS (the lower the number, the greedier the action selection)
         config (dict): A dictionary specifying parameter configurations
 
     Returns:
-        action_index (int): Represents an action in the game's action space
+        action_index (int): Represents an action in the environment's action space
     """
     
     root_node = Node(0)
@@ -145,7 +120,7 @@ def mcts(game,network_model,temperature,config):
         policy = (policy**(1/temperature)) / (policy**(1/temperature)).sum()
         action_index = np.random.choice( range(network_model.action_size) , p=policy )
 
-    # update Game search statistics
+    # update StochasticWorld environment search statistics
     game.value_history.append( root_node.cumulative_value/root_node.num_visits ) # use the root node's MCTS value as the ground truth value when training
     game.policy_history.append(policy) # use the MCTS policy as the ground truth value when training
 
@@ -153,11 +128,11 @@ def mcts(game,network_model,temperature,config):
 
 def train(network_model,replay_buffer,optimizer,config):
     """
-    Train the network_model by sampling games from the replay_buffer.
+    Train the network_model by sampling episode trajectories from the replay_buffer.
 
     Args:
         network_model (NetworkModel): The network model will be used for inference to conduct MCTS
-        replay_buffer (ReplayBuffer): Contains a history of the most recent games of self-play
+        replay_buffer (ReplayBuffer): Contains a history of the most recent episodes of self-play
         optimizer (tensorflow.python.keras.optimizer_v2.adam.Adam): The optimizer used to update the network_model weights
         config (dict): A dictionary specifying parameter configurations
 
@@ -233,7 +208,6 @@ def get_temperature(num_iter):
     
     # as num_iter increases, temperature decreases, and actions become greedier
     if num_iter < 100: return 3
-##    else: return 2
     elif num_iter < 200: return 2
     elif num_iter < 300: return 1
     elif num_iter < 400: return .5
@@ -244,40 +218,27 @@ def get_temperature(num_iter):
 def test(game_master,network_model,config):
     """
     Using a trained network_model, greedily play config['test']['num_test_games'] games, and return a list of the game histories.
-    If config['test']['record'] is True, record the game renderings.
 
     Args:
+        game_master (StochasticWorld): The StochasticWorld instance with the transition dynamics you want to test; each test episode will use an identical deep copy of this instance
         network_model (NetworkModel): The network model will be used for inference to conduct MCTS
         config (dict): A dictionary specifying parameter configurations
 
     Returns:
-        game_list (list[Game]): The list of games that were played by the network_model
+        average_reward (float): The average reward the agent received during the test games
     """
 
     print('=========== TESTING ===========')
 
-##    game_master = StochasticWorld(config)
-
-##    game_list = []
     total_rewards = 0
     start_time = time.time()
     for _ in range( int(config['test']['num_test_games']) ):
-##        game = Game(config)
         game = game_master.copy()
         game.reset()
 
-##        if config['test']['record']: # we need to wrap the game.env in a Monitor, so reset the seed and initial current_state after
-##            game.env = Monitor( gym.make(config['env']['env_name']) , f"recordings/{config['env']['env_name']}_{str(time.time()).replace('.','_')}" )
-##            game.env.seed( int( np.random.choice( range(int(1e5)) ) ) )
-##            game.current_state = game.env.reset()
-
         while not game.is_game_over():
-##            if config['test']['record']: game.env.render()
-            
             action_index = mcts(game,network_model,None,config) # set temperature value to None, so MCTS always returns the greedy action
             game.apply_action(action_index)
-
-##        print(f'Total reward: {sum(game.reward_history)}')
 
         total_rewards += sum(game.reward_history)
 
@@ -286,28 +247,14 @@ def test(game_master,network_model,config):
 
     return average_reward
 
-##        game_list.append(game)
-##    print()
-##    return game_list
-
 if __name__ == '__main__':
-##    # dictionary defining gym environment attributes
-##    env_attributes = { 'cartpole': { 'env_name': 'CartPole-v1',
-##                                     'state_shape': (4,),
-##                                     'action_size': 2 }
-##                       }
-
-##    env_key_name = 'cartpole'
     config = { 'env': { 'env_filename': '1642458975_8878424',
-                        'num_states': 100,
-                        'num_actions': 3,
-                        'timestep_limit': 50,
-                        'stochastic_branching_factor': 2,
-                        'transition_probabilities_stdev': 1e-2,
-                        'transition_rewards_range': (-1,1) },
-##               'env': { 'env_name': env_attributes[env_key_name]['env_name'], # this string gets passed on to the gym.make() function to make the gym environment
-##                        'state_shape': env_attributes[env_key_name]['state_shape'], # used to define input shape for representation function
-##                        'action_size': env_attributes[env_key_name]['action_size'] }, # used to define output size for prediction function               
+                        'num_states': 100, # the number of states in the environment's state space
+                        'num_actions': 3, # the number of actions in the environment's action space
+                        'timestep_limit': 50, # the number of timesteps in an episode before the environment terminates
+                        'stochastic_branching_factor': 2, # the number of possible states that can result from applying an action to a state
+                        'transition_probabilities_stdev': 1e-2, # the skewness of the transition probabilities; if 0, all stochastic transitions have uniform probability, whereas the higher the value, the more skewed the probabilities are
+                        'transition_rewards_range': (-1,1) }, # the range of transition rewards in this environment's reward space
                'model': { 'representation_function': { 'num_layers': 2, # number of hidden layers
                                                        'num_neurons': 32, # number of hidden units per layer
                                                        'activation_function': 'relu', # activation function for every hidden layer
@@ -326,16 +273,15 @@ if __name__ == '__main__':
                          'c2': 19625 }, # for regulating MCTS search exploration (higher value = lower emphasis on prior value and visit count)
                'self_play': { 'num_games': 1000, # number of games the agent plays to train on
                               'discount_factor': 1.0, # used when backpropagating values up mcts, and when calculating bootstrapped value during training
-                              'test_interval': 25 }, # how often to save network_model weights and replay_buffer
+                              'test_interval': 25 }, # how often to test the current learned network_model weights, using greedy action selection
                'replay_buffer': { 'buffer_size': 1e2, # size of the buffer
-                                  'sample_size': 1e1 }, # how many games we sample from the buffer when training the agent
+                                  'sample_size': 1e1 }, # how many episode trajectories we sample from the buffer when training the agent
                'train': { 'num_bootstrap_timesteps': 500, # number of timesteps in the future to bootstrap true value
-                          'num_unroll_steps': 1e1, # number of timesteps to unroll to match action trajectories for each game sample
+                          'num_unroll_steps': 1e1, # number of timesteps to unroll to match action trajectories for each episode sample
                           'learning_rate': 1e-3, # learning rate for Adam optimizer
                           'beta_1': 0.9, # parameter for Adam optimizer
                           'beta_2': 0.999 }, # parameter for Adam optimizer
                'test': { 'num_test_games': 1000 }, # number of times to test the agent using greedy actions
-##                         'record': True }, # True if you want to record the game renders, False otherwise
                'seed': 0
                }
 
@@ -345,13 +291,3 @@ if __name__ == '__main__':
     with tf.device('/CPU:0'):
         network_model = NetworkModel(config)
         self_play(network_model,config)
-
-##    game_list = test(network_model,config)
-##    game_master = load_env_config('1642458975_8878424') # states = 100
-##    game_master = load_env_config('1642555090_3765473') # states = 1000, stdev = 1e-2
-##    test(game_master,network_model,config)
-
-##    game = game_master.copy()
-##    for _ in range(5): game.apply_action(game.sample_random_action())
-##    print(game.action_history)
-##    
