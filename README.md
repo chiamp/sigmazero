@@ -121,10 +121,18 @@ The SigmaZero algorithm can be summarized as follows:
 
 Rather than a list of nodes, the node set is implemented as a single class object; the same as a node in regular MCTS. 
 
-| First Header  | Second Header |
-| ------------- | ------------- |
-| Content Cell  | Content Cell  |
-| Content Cell  | Content Cell  |
+| Attribute | Node  | Node Set |
+| ------------- | ------------- | ------------- |
+| Prior  | Obtained from the policy value of the parent node; used to calculate UCB score | Obtained from the policy value of the parent node set; used to calculate UCB score |
+| Hidden State Representation  | A vector representation of the state represented by this node | A matrix of vector representations for each stochastic state represented by this node set |
+| Transition Probabilities | The Node class does not have this property, but if it were implemented, this value would be 1 |  |
+| Transition Reward |  |  |
+| Policy |  |  |
+| Value |  |  |
+| Children |  |  |
+| Cumulative Value |  |  |
+| Number of Visits |  |  |
+
 
 * matrix as hidden states instead of individual nodes
 * MCTS expansion simply passes the state matrix into the dynamics function, and then followed by reshaping, multiplying probabilities, etc.
