@@ -119,7 +119,7 @@ The SigmaZero algorithm can be summarized as follows:
 
 ### Implementation details
 
-Rather than a list of nodes, the node set is implemented as a single class object; the same as a node in regular MCTS. 
+Rather than a list of nodes, the node set is implemented as a single class object; the same as a node in regular MCTS. Comparisons between how the attributes are implemented between a node and node set are detailed in the table below:
 
 | Attribute | Node  | Node Set |
 | ------------- | ------------- | ------------- |
@@ -127,15 +127,11 @@ Rather than a list of nodes, the node set is implemented as a single class objec
 | Hidden State Representation  | A <img src="https://render.githubusercontent.com/render/math?math=d">-length vector representation of the state represented by this node (where <img src="https://render.githubusercontent.com/render/math?math=d"> is determined by a hyperparameter) | A <img src="https://render.githubusercontent.com/render/math?math=n \times d"> matrix of vector representations for each stochastic state represented by this node set (where <img src="https://render.githubusercontent.com/render/math?math=n"> is the number of nodes in this node set) |
 | Transition Probabilities | The Node class does not have this property, but if it were implemented, this value would be 1 | A <img src="https://render.githubusercontent.com/render/math?math=n">-length vector that denotes the probability of reaching each node state in the node set, if we were to apply the corresponding actions to the initial state |
 | Transition Reward | A scalar value obtained from the dynamics function, denoting the predicted reward received for transitioning to the state represented by this node, from the  state represented by the parent node | A scalar value obtained by taking the expected value of the transition rewards from each node in the node set, denoting the predicted reward received for transitioning to the stochastic state represented by this node set, from the stochastic state represented by the parent node set; we don't need to keep track of the individual transition rewards as only the expected transition reward will be used to match against the target during training |
-| Policy |  |  |
-| Value |  |  |
-| Children |  |  |
-| Cumulative Value |  |  |
-| Number of Visits |  |  |
-
-
-* matrix as hidden states instead of individual nodes
-* MCTS expansion simply passes the state matrix into the dynamics function, and then followed by reshaping, multiplying probabilities, etc.
+| Policy | An <img src="https://render.githubusercontent.com/render/math?math=a">-length vector obtained from the prediction function, denoting the prior action distribution for the child nodes |  An <img src="https://render.githubusercontent.com/render/math?math=a">-length vector obtained by taking the expected value of the prior action distributions from each node in the node set, denoting the prior action distribution for the child node sets |
+| Value | A scalar value obtained from the prediction function, denoting the predicted return received if we were to follow the agent's policy at the state represented by this node for the remainder of the episode | A scalar value obtained by taking the expected value of the values from each node in the node set, denoting the predicted return received if we were to follow the agent's policy at the stochastic state represented by this node set for the remainder of the episode; we don’t need to keep track of the individual values as only the expected value will be used to match against the target during training |
+| Children | A list of child nodes for each corresponding action in the action space | A list of child node sets for each corresponding action in the action space |
+| Cumulative Value | A scalar value that accumulates values backpropagated up the search path; the average value is used to calculate UCB score | A scalar value that accumulates values backpropagated up the search path; the average value is used to calculate UCB score |
+| Number of Visits | The number of times this node has been visited during MCTS; dividing the cumulative value by the visit count gives the average value | The number of times this node has been visited during MCTS; dividing the cumulative value by the visit count gives the average value |
 
 ## Environment
 
