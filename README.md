@@ -131,7 +131,7 @@ Rather than a list of nodes, the node set is implemented as a single class objec
 | Value | A scalar value obtained from the prediction function, denoting the predicted return received if we were to follow the agent's policy at the state represented by this node for the remainder of the episode | A scalar value obtained by taking the expected value of the values from each node in the node set, denoting the predicted return received if we were to follow the agent's policy at the stochastic state represented by this node set for the remainder of the episode; we don’t need to keep track of the individual values as only the expected value will be used to match against the target during training |
 | Children | A list of child nodes for each corresponding action in the action space | A list of child node sets for each corresponding action in the action space |
 | Cumulative Value | A scalar value that accumulates values backpropagated up the search path; the average value is used to calculate UCB score | A scalar value that accumulates values backpropagated up the search path; the average value is used to calculate UCB score |
-| Number of Visits | The number of times this node set has been visited during MCTS; dividing the cumulative value by the visit count gives the average value | The number of times this node has been visited during MCTS; dividing the cumulative value by the visit count gives the average value |
+| Number of Visits | The number of times this node has been visited during MCTS; dividing the cumulative value by the visit count gives the average value | The number of times this node set has been visited during MCTS; dividing the cumulative value by the visit count gives the average value |
 
 ## Environment
 
