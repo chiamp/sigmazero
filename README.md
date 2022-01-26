@@ -9,6 +9,8 @@ This is a repo where I generalize DeepMind's MuZero reinforcement learning algor
 * [File Descriptions](#file-descriptions)
 * [Additional Resources](#additional-resources)
 
+![Alt text](sigmazero_mcts.gif)
+
 ## Can MuZero work in stochastic environments?
 * feature representation equal to state space size
 
@@ -53,14 +55,17 @@ The MuZero algorithm can be summarized as follows:
 
 MCTS requires a model of the environment when expanding leaf nodes during its search. The environment model takes in a state and action and outputs the resulting state and transition reward; this is the functional definition of the dynamics function, <img src="https://render.githubusercontent.com/render/math?math=g(s^k,a^{k%2B1}) \rightarrow s^{k%2B1},r^{k%2B1}">, which approximates the true environment model. This works for deterministic environments where there is a single outcome for any action applied to any state.
 
-In stochastic environments, the functional definition of the environment model changes. Given a state and action, the environment model instead outputs a **set** of possible resulting states, transition rewards and the corresponding probabilities of those outcomes occurring. To approximate this environment model, we can re-define the dynamics function as: <img src="https://render.githubusercontent.com/render/math?math=g(s^k,a^{k%2B1}) \rightarrow [s^{k%2B1}_1,...,s^{k%2B1}_b],[r^{k%2B1}_1,...,r^{k%2B1}_b],[p^{k%2B1}_1,...,p^{k%2B1}_b]">, where <img src="https://render.githubusercontent.com/render/math?math=p^{k%2B1}_i"> is the predicted probability that applying action <img src="https://render.githubusercontent.com/render/math?math=a^{k%2B1}"> to state <img src="https://render.githubusercontent.com/render/math?math=s^k"> results in the predicted state <img src="https://render.githubusercontent.com/render/math?math=s^{k%2B1}_i"> with transition reward <img src="https://render.githubusercontent.com/render/math?math=r^{k%2B1}_i">.
+In stochastic environments, the functional definition of the environment model changes. Given a state and action, the environment model instead outputs a **set** of possible resulting states, transition rewards and the corresponding probabilities of those outcomes occurring. To approximate this environment model, we can re-define the dynamics function as: <img src="https://render.githubusercontent.com/render/math?math=g(s^k,a^{k%2B1}) \rightarrow [s^{k%2B1}_1,...,s^{k%2B1}_b],[r^{k%2B1}_1,...,r^{k%2B1}_b],[\pi^{k%2B1}_1,...,\pi^{k%2B1}_b]">, where <img src="https://render.githubusercontent.com/render/math?math=\pi^{k%2B1}_i"> is the predicted probability that applying action <img src="https://render.githubusercontent.com/render/math?math=a^{k%2B1}"> to state <img src="https://render.githubusercontent.com/render/math?math=s^k"> results in the predicted state <img src="https://render.githubusercontent.com/render/math?math=s^{k%2B1}_i"> with transition reward <img src="https://render.githubusercontent.com/render/math?math=r^{k%2B1}_i">.
 
-Given a current state <img src="https://render.githubusercontent.com/render/math?math=s"> and action <img src="https://render.githubusercontent.com/render/math?math=a">, a perfect environment model would output a corresponding probability for every possible transition sequence <img src="https://render.githubusercontent.com/render/math?math=s,a \rightarrow s^',r">, where <img src="https://render.githubusercontent.com/render/math?math=s^'"> is the resulting state and <img src="https://render.githubusercontent.com/render/math?math=r"> is the resulting transition reward. To approximate this with the dynamics function, we would need to define the function to output a number of predicted transitions <img src="https://render.githubusercontent.com/render/math?math=(s^{k%2B1}_i,r^{k%2B1}_i,p^{k%2B1}_i)"> equal to all possible transitions of the environment. This requires additional knowledge of the environment's state space, reward space and transition dynamics.
+Given a current state <img src="https://render.githubusercontent.com/render/math?math=s"> and action <img src="https://render.githubusercontent.com/render/math?math=a">, a perfect environment model would output a corresponding probability for every possible transition sequence <img src="https://render.githubusercontent.com/render/math?math=s,a \rightarrow s^',r">, where <img src="https://render.githubusercontent.com/render/math?math=s^'"> is the resulting state and <img src="https://render.githubusercontent.com/render/math?math=r"> is the resulting transition reward. To approximate this with the dynamics function, we would need to define the function to output a number of predicted transitions <img src="https://render.githubusercontent.com/render/math?math=(s^{k%2B1}_i,r^{k%2B1}_i,\pi^{k%2B1}_i)"> equal to all possible transitions of the environment. This requires additional knowledge of the environment's state space, reward space and transition dynamics.
 
 Instead we define a **stochastic branching factor** hyperparameter  <img src="https://render.githubusercontent.com/render/math?math=b"> which sets and limits the number of predicted transitions the dynamics function can output. MCTS can then use this modified dynamics function to expand nodes and account for stochastic outcomes.
 
 DIAGRAMS OF MCTS COMPARISON BETWEEN MUZERO AND SIGMAZERO
 ALSO EXPLAIN CALCULATING EXPECTED VALUE AND PROBABILITY DISTRIBUTION IN SIGMAZERO COMPARED TO MUZERO WHEN EXPANDING NODES
+
+Below is a diagram of MCTS
+A similar process is used to calculate the predicted expected transition reward, value and policy distribution, when training, which are then in turn matched against the target actual transition reward received from the environment, MCTS value and MCTS policy distribution.
 
 ## SigmaZero
 
@@ -90,6 +95,9 @@ The SigmaZero algorithm can be summarized as follows:
 				* this predicted value <img src="https://render.githubusercontent.com/render/math?math=v^{t%2B1}"> is matched to the value outputted by MCTS at that time step in that game trajectory
 			* update the weights of the representation, dynamics and prediction function based on these three targets
 
+### Implementation details
+* matrix as hidden states instead of individual nodes
+
 ## Environment
 
 ## Results and Discussion
@@ -102,6 +110,7 @@ The SigmaZero algorithm can be summarized as follows:
 ## Future Work
 * merge similar resulting states together
 * disregard low probability resulting states
+* modify ucb score to factor in depth level of node to control for branching factor exploding
 
 ## MuZero Technical Details
 Below is a description of how the MuZero algorithm works in more detail.
