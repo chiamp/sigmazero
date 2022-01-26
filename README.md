@@ -9,7 +9,7 @@ This is a repo where I generalize DeepMind's MuZero reinforcement learning algor
 * [File Descriptions](#file-descriptions)
 * [Additional Resources](#additional-resources)
 
-![Alt text](sigmazero_graph.png)
+![Alt text](sigmazero_mcts.gif)
 
 ## Can MuZero work in stochastic environments?
 * feature representation equal to state space size
@@ -63,6 +63,9 @@ Instead we define a **stochastic branching factor** hyperparameter  <img src="ht
 
 DIAGRAMS OF MCTS COMPARISON BETWEEN MUZERO AND SIGMAZERO
 ALSO EXPLAIN CALCULATING EXPECTED VALUE AND PROBABILITY DISTRIBUTION IN SIGMAZERO COMPARED TO MUZERO WHEN EXPANDING NODES
+
+Below is a diagram of MCTS
+A similar process is used to calculate the predicted expected transition reward, value and policy distribution, when training, which are then in turn matched against the target actual transition reward received from the environment, MCTS value and MCTS policy distribution.
 
 ## SigmaZero
 
