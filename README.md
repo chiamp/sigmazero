@@ -118,6 +118,14 @@ The SigmaZero algorithm can be summarized as follows:
 			* update the weights of the representation, dynamics and prediction function based on these three targets
 
 ### Implementation details
+
+Rather than a list of nodes, the node set is implemented as a single class object; the same as a node in regular MCTS. 
+
+| First Header  | Second Header |
+| ------------- | ------------- |
+| Content Cell  | Content Cell  |
+| Content Cell  | Content Cell  |
+
 * matrix as hidden states instead of individual nodes
 * MCTS expansion simply passes the state matrix into the dynamics function, and then followed by reshaping, multiplying probabilities, etc.
 
