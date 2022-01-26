@@ -4,12 +4,20 @@ import matplotlib.pyplot as plt
 
 
 def plot(env_stochastic_branching_factor,test_interval):
+    """
+    Plot the average reward received by the agent after training using the MuZero and SigmaZero algorithms.
+
+    Args:
+        env_stochastic_branching_factor (int): The stochastic branching factor of the environment that the agents trained in
+        test_interval (int): The testing interval used when executing the training algorithms
+
+    Returns: None
+    """
+    
     with open('muzero/test_rewards/test_rewards.pkl','rb') as file: muzero_rewards = pickle.load(file)
     with open('sigmazero/test_rewards/test_rewards_1.pkl','rb') as file: sigmazero_rewards_1 = pickle.load(file)
     with open('sigmazero/test_rewards/test_rewards_2.pkl','rb') as file: sigmazero_rewards_2 = pickle.load(file)
     with open('sigmazero/test_rewards/test_rewards_3.pkl','rb') as file: sigmazero_rewards_3 = pickle.load(file)
-
-##    x_values = range(0,len(muzero_rewards)*test_interval,test_interval)
 
     # initial graph
     plt.plot( range( 0 , len(muzero_rewards)*test_interval , test_interval ) , muzero_rewards,
