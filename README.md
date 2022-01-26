@@ -123,10 +123,10 @@ Rather than a list of nodes, the node set is implemented as a single class objec
 
 | Attribute | Node  | Node Set |
 | ------------- | ------------- | ------------- |
-| Prior  | Obtained from the policy value of the parent node; used to calculate UCB score | Obtained from the policy value of the parent node set; used to calculate UCB score |
-| Hidden State Representation  | A vector representation of the state represented by this node | A matrix of vector representations for each stochastic state represented by this node set |
-| Transition Probabilities | The Node class does not have this property, but if it were implemented, this value would be 1 |  |
-| Transition Reward |  |  |
+| Prior  | A scalar value obtained from the policy value of the parent node; used to calculate UCB score | A scalar value obtained from the policy value of the parent node set; used to calculate UCB score |
+| Hidden State Representation  | A <img src="https://render.githubusercontent.com/render/math?math=d">-length vector representation of the state represented by this node (where <img src="https://render.githubusercontent.com/render/math?math=d"> is determined by a hyperparameter) | A <img src="https://render.githubusercontent.com/render/math?math=n \times d"> matrix of vector representations for each stochastic state represented by this node set (where <img src="https://render.githubusercontent.com/render/math?math=n"> is the number of nodes in this node set) |
+| Transition Probabilities | The Node class does not have this property, but if it were implemented, this value would be 1 | A <img src="https://render.githubusercontent.com/render/math?math=n">-length vector that denotes the probability of reaching each node state in the node set, if we were to apply the corresponding actions to the initial state |
+| Transition Reward | A scalar value obtained from the dynamics function, denoting the predicted reward received for transitioning to the state represented by this node, from the  state represented by the parent node | A scalar value obtained by taking the expected value of the transition rewards from each node in the node set, denoting the predicted reward received for transitioning to the stochastic state represented by this node set, from the stochastic state represented by the parent node set; we don't need to keep track of the individual transition rewards as only the expected transition reward will be used to match against the target during training |
 | Policy |  |  |
 | Value |  |  |
 | Children |  |  |
