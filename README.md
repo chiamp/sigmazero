@@ -135,6 +135,53 @@ Rather than a list of nodes, the node set is implemented as a single class objec
 
 ## Environment
 
+We now look to test the SigmaZero algorithm on a stochastic environment and compare its performance with MuZero.
+
+A toy example StochasticWorld environment is used for this experiment. The StochasticWorld environment has the following parameters that can be configured:
+* `num_states`: the number of states in the environment's action space
+* `num_actions`: the number of actions in the environment's action space
+* `timestep_limit`: the number of time steps in an episode before termination
+* `stochastic_branching_factor`: the number of possible states that can result from applying an action to a state (this value defines the true branching factor of the environment, whereas the hyperparameter <img src="https://render.githubusercontent.com/render/math?math=b"> is an approximation used by the model)
+* `transition_probabilities_stdev`: determines the skewness of the transition probabilities, which are generated as follows:
+	* for every state, for every action, sample a vector of length `stochastic_branching_factor` from a normal distribution with mean 0 and `transition_probabilities_stdev` standard deviation
+	* softmax the sampled values to get the corresponding transition probabilities of reaching one of the `stochastic_branching_factor` states (which are assigned randomly), as a result of applying that particular action to that particular state
+	* if `transition_probabilities_stdev` is 0, all stochastic transitions have uniform probability, whereas the higher the value, the more skewed the probabilities are
+* `transition_rewards_range`: the range of possible transition reward values; this range is sampled from uniformly when constructing the transition dynamics of the environment
+
+Each episode, the agent starts at a random initial state. At every time step, the agent applies an action which results in a possible new state and receives a transition reward, according to the transition dynamics generated from the parameter configuration. Once the timestep limit is reached, the episode terminates and the return is calculated as the total sum of transition rewards received by the agent during the episode.
+
+## Experiment
+
+### Setup
+A StochasticWorld environment with the following parameters was used for experiments:
+* `num_states`: 100
+* `num_actions`: 3
+* `timestep_limit`: 50
+* `stochastic_branching_factor`: 2
+* `transition_probabilities_stdev`: 10<sup>-2</sup>
+* `transition_rewards_range`: [-1,1]
+
+For both the MuZero and SigmaZero algorithms, a separate neural network with the following parameters were used to approximate the representation, dynamics and prediction function:
+* `num_layers`: 2
+* `num_neurons`: 32
+* `activation_function`: ReLU
+* `regularizer`: L2(10<sup>-3</sup>)
+* `hidden_state_size`: 32
+
+The stochastic branching factor hyperparameter <img src="https://render.githubusercontent.com/render/math?math=b"> was set to 2 for SigmaZero.
+
+### Results
+
+Below is a graph illustrating the average reward received by agents using the MuZero and SigmaZero algorithm on the same StochasticWorld environment:
+
+![Alt text](assets/muzero_sigmazero2.png)
+
+Additional experiments were conducted when the stochastic branching factor <img src="https://render.githubusercontent.com/render/math?math=b"> was set to 1 and 3 for SigmaZero:
+
+![Alt text](assets/muzero_sigmazero123.png)
+
+### Discussion
+
 ## Results and Discussion
 * analyze runtime and space complexity with respect to the branching factor hyperparameter
 
