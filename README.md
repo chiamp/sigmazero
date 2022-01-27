@@ -2,12 +2,14 @@
 This is a repo where I generalize DeepMind's MuZero reinforcement learning algorithm on stochastic environments, and create an algorithm called SigmaZero (stochastic MuZero). For more details on the algorithm specifics, check out the original [paper](https://www.nature.com/articles/s41586-020-03051-4.epdf?sharing_token=kTk-xTZpQOF8Ym8nTQK6EdRgN0jAjWel9jnR3ZoTv0PMSWGj38iNIyNOw_ooNp2BvzZ4nIcedo7GEXD7UmLqb0M_V_fop31mMY9VBBLNmGbm0K9jETKkZnJ9SgJ8Rwhp3ySvLuTcUr888puIYbngQ0fiMf45ZGDAQ7fUI66-u7Y%3D) and my [project](https://github.com/chiamp/muzero-cartpole) on applying the MuZero algorithm on the cartpole environment.
 
 ## Table of Contents
-* [What is MuZero?](#what-is-muzero)
-* [Thoughts](#thoughts)
-* [What is gym?](#what-is-gym)
-* [MuZero Technical Details](#muzero-technical-details)
+* [MuZero](#muzero)
+* [Monte Carlo Tree Search in Stochastic Environments](#monte-carlo-tree-search-in-stochastic-environments)
+* [SigmaZero](#sigmazero)
+* [Environment](#environment)
+* [Experiments](#experiments)
+* [Discussions](#discussions)
+* [Future Work](#future-work)
 * [File Descriptions](#file-descriptions)
-* [Additional Resources](#additional-resources)
 
 ## MuZero
 
@@ -147,7 +149,7 @@ A toy example StochasticWorld environment is used for this experiment. The Stoch
 
 Each episode, the agent starts at a random initial state. At every time step, the agent applies an action which results in a possible new state and receives a transition reward, according to the transition dynamics generated from the parameter configuration. Once the time step limit is reached, the episode terminates and the return is calculated as the total sum of transition rewards received by the agent during the episode.
 
-## Experiment
+## Experiments
 
 ### Setup
 A StochasticWorld environment with the following parameters was used for experiments:
@@ -220,6 +222,7 @@ Here is a list of possible ideas for future work in extending this project:
 		* `self_play` is the main function to call; it initiates self-play and trains MuZero / SigmaZero
 	* `test_rewards` holds the average rewards received by the agent when it is periodically tested during training
 	* `env_configs` holds the specific StochasticWorld environment configuration used by both MuZero and SigmaZero
+* `plot.py` plots and compares the average test rewards received by MuZero and SigmaZero agents
 * `assets/` holds media files used in this `README.md`
 * `requirements.txt` holds all required dependencies, which can be installed by typing `pip install -r requirements.txt` in the command line
 
