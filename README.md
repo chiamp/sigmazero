@@ -97,7 +97,7 @@ The SigmaZero algorithm can be summarized as follows:
 				* assign the policy distribution over actions of the child node set <img src="https://render.githubusercontent.com/render/math?math=N^{k%2B1}"> as: <img src="https://render.githubusercontent.com/render/math?math=p_{N^{k%2B1}} = [ \sum_{j \in N^{k%2B1}} \pi_j^{k%2B1} p_{j1}^{k%2B1} , ... , \sum_{j \in N^{k%2B1}} \pi_j^{k%2B1} p_{ja}^{k%2B1} ]">
 				* assign the value of the child node set <img src="https://render.githubusercontent.com/render/math?math=N^{k%2B1}"> as: <img src="https://render.githubusercontent.com/render/math?math=v_{N^{k%2B1}} = \sum_{j \in N^{k%2B1}} \pi_j^{k%2B1} v_j^{k%2B1}">
 				* backpropagate the predicted value <img src="https://render.githubusercontent.com/render/math?math=v_{N^{k%2B1}}"> up the search path
-		* sample an action based on the visit count of each child node of the root node
+		* sample an action based on the visit count of each child node set of the root node set
 		* apply the sampled action to the environment and observe the resulting transition reward
 	* once the episode is over, save the game trajectory (including the MCTS results) into the replay buffer
 	* sample a number of game trajectories from the replay buffer:
