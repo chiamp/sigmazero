@@ -4,7 +4,7 @@ This is a repo where I generalize DeepMind's MuZero reinforcement learning algor
 ## Table of Contents
 * [MuZero](#muzero)
 * [Monte Carlo Tree Search in Stochastic Environments](#monte-carlo-tree-search-in-stochastic-environments)
-* [SigmaZero](#sigmazero)
+* [SigmaZero](#sigmazero-1)
 * [Environment](#environment)
 * [Experiments](#experiments)
 * [Discussions](#discussions)
