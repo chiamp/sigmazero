@@ -1,5 +1,5 @@
 # SigmaZero
-This is a repo where I generalize DeepMind's MuZero reinforcement learning algorithm on stochastic environments, and create an algorithm called SigmaZero (stochastic MuZero). For more details on the algorithm specifics, check out the original [paper](https://www.nature.com/articles/s41586-020-03051-4.epdf?sharing_token=kTk-xTZpQOF8Ym8nTQK6EdRgN0jAjWel9jnR3ZoTv0PMSWGj38iNIyNOw_ooNp2BvzZ4nIcedo7GEXD7UmLqb0M_V_fop31mMY9VBBLNmGbm0K9jETKkZnJ9SgJ8Rwhp3ySvLuTcUr888puIYbngQ0fiMf45ZGDAQ7fUI66-u7Y%3D) and my [project](https://github.com/chiamp/muzero-cartpole) on applying the MuZero algorithm on the cartpole environment.
+This is a repo where I generalize DeepMind's MuZero reinforcement learning algorithm on stochastic environments, and create an algorithm called SigmaZero (stochastic MuZero). For more details on the MuZero algorithm, check out the original [paper](https://www.nature.com/articles/s41586-020-03051-4.epdf?sharing_token=kTk-xTZpQOF8Ym8nTQK6EdRgN0jAjWel9jnR3ZoTv0PMSWGj38iNIyNOw_ooNp2BvzZ4nIcedo7GEXD7UmLqb0M_V_fop31mMY9VBBLNmGbm0K9jETKkZnJ9SgJ8Rwhp3ySvLuTcUr888puIYbngQ0fiMf45ZGDAQ7fUI66-u7Y%3D) and my [project](https://github.com/chiamp/muzero-cartpole) on applying the MuZero algorithm on the cartpole environment.
 
 ## Table of Contents
 * [MuZero](#muzero)
@@ -220,8 +220,8 @@ Here is a list of possible ideas for future work in extending this project:
 	* `stochastic_world.py` holds the data structure class for the StochasticWorld environment
 	* `main.py` holds functions for self-play, MCTS / SigmaZero, training and testing
 		* `self_play` is the main function to call; it initiates self-play and trains MuZero / SigmaZero
-	* `test_rewards` holds the average rewards received by the agent when it is periodically tested during training
-	* `env_configs` holds the specific StochasticWorld environment configuration used by both MuZero and SigmaZero
+	* `test_rewards/` holds the average rewards received by the agent when it is periodically tested during training
+	* `env_configs/` holds the specific StochasticWorld environment configuration used by both MuZero and SigmaZero
 * `plot.py` plots and compares the average test rewards received by MuZero and SigmaZero agents
 * `assets/` holds media files used in this `README.md`
 * `requirements.txt` holds all required dependencies, which can be installed by typing `pip install -r requirements.txt` in the command line
