@@ -204,9 +204,10 @@ In environments with large state spaces, explicit representation becomes infeasi
 
 Here is a list of possible ideas for future work in extending this project:
 * find a way to make SigmaZero computationally more efficient
-	* merge similar resulting states together
-	* disregard low probability resulting states
-	* modify UCB score to factor in depth level of node set to control for how fast the size of hidden state representations increase in the search tree
+	* after expanding a node set using the dynamics function, reduce the size of the hidden state representation by:
+		* merging similar resulting states together
+		* discarding resulting states with low transition probabilities
+	* modify the UCB score to factor in the depth level of node sets to control for how fast the size of hidden state representations increase in the search tree
 * try StochasticWorld environments with different configurations
 	*  higher stochastic branching factors
 	* more skewed transition probabilities
