@@ -216,7 +216,7 @@ Here is a list of possible ideas for future work in extending this project:
 * use more simulations for MCTS and see if that affects the results for both MuZero and SigmaZero
 
 ## File Descriptions
-* `muzero / sigmazero`: there are identical Python files in the `muzero` and `sigmazero` directory; their functions are primarily the same except applying the MuZero and SigmaZero algorithm respectively:
+* `muzero / sigmazero`: there are identical Python files in the `muzero` and `sigmazero` directories; their functions are primarily the same except applying the MuZero and SigmaZero algorithm respectively:
 	* `classes.py` holds data structure classes used by MuZero / SigmaZero
 	* `stochastic_world.py` holds the data structure class for the StochasticWorld environment
 	* `main.py` holds functions for self-play, MCTS / SigmaZero, training and testing
