@@ -9,9 +9,6 @@ This is a repo where I generalize DeepMind's MuZero reinforcement learning algor
 * [File Descriptions](#file-descriptions)
 * [Additional Resources](#additional-resources)
 
-## Can MuZero work in stochastic environments?
-* feature representation equal to state space size
-
 ## MuZero
 
 ### Functions
@@ -148,7 +145,7 @@ A toy example StochasticWorld environment is used for this experiment. The Stoch
 	* if `transition_probabilities_stdev` is 0, all stochastic transitions have uniform probability, whereas the higher the value, the more skewed the probabilities are
 * `transition_rewards_range`: the range of possible transition reward values; this range is sampled from uniformly when constructing the transition dynamics of the environment
 
-Each episode, the agent starts at a random initial state. At every time step, the agent applies an action which results in a possible new state and receives a transition reward, according to the transition dynamics generated from the parameter configuration. Once the timestep limit is reached, the episode terminates and the return is calculated as the total sum of transition rewards received by the agent during the episode.
+Each episode, the agent starts at a random initial state. At every time step, the agent applies an action which results in a possible new state and receives a transition reward, according to the transition dynamics generated from the parameter configuration. Once the time step limit is reached, the episode terminates and the return is calculated as the total sum of transition rewards received by the agent during the episode.
 
 ## Experiment
 
@@ -180,83 +177,50 @@ Additional experiments were conducted when the stochastic branching factor <img 
 
 ![Alt text](assets/muzero_sigmazero123.png)
 
-### Discussion
+As we can see from the results, SigmaZero (<img src="https://render.githubusercontent.com/render/math?math=b=2">) receives more reward on average per episode compared to MuZero. We can see that SigmaZero (<img src="https://render.githubusercontent.com/render/math?math=b=1">) receives similar reward as MuZero, which makes sense as SigmaZero reduces to MuZero when <img src="https://render.githubusercontent.com/render/math?math=b=1">. On the other hand, we see that SigmaZero (<img src="https://render.githubusercontent.com/render/math?math=b=3">) receives similar reward as SigmaZero (<img src="https://render.githubusercontent.com/render/math?math=b=2">), showing that setting a <img src="https://render.githubusercontent.com/render/math?math=b"> value that's higher than the inherent stochastic branching factor of the environment doesn't hinder SigmaZero's performance.
 
-## Results and Discussion
-* analyze runtime and space complexity with respect to the branching factor hyperparameter
+## Discussions
 
-## Comparisons
-* greater power to describe stochastic states, at the cost of greater memory requirements
-* do we need to use exactly the same stochastic branching factor as the environment? Probably not
-	* Even using a stochastic branching factor of 2 may improve performance compared to 1; might make it easier for hidden state representation to represent stochastic states
+In this project, we see an example of how SigmaZero can outperform MuZero on stochastic environments. We now discuss and compare possible advantages and disadvantages for using one algorithm over another.
+
+### SigmaZero has increased runtime and space complexity
+Given that MCTS is set to run <img src="https://render.githubusercontent.com/render/math?math=s"> simulations per time step, the worst-case is if the search tree is a straight line, in which case the search tree would have a depth of <img src="https://render.githubusercontent.com/render/math?math=s">. For SigmaZero, the bottom-most node set would then have a hidden state matrix representation of size <img src="https://render.githubusercontent.com/render/math?math=b^{(s-1)} \times d">, which is <img src="https://render.githubusercontent.com/render/math?math=b^{(s-1)}"> times larger than the hidden state vector representation in MuZero. To expand this node set, the dynamics function for SigmaZero receives <img src="https://render.githubusercontent.com/render/math?math=b^{(s-1)}"> times more samples to compute compared to MuZero.
+
+### Does SigmaZero need to use exactly the same stochastic branching factor as the environment?
+The answer is not clear as to whether increasing the stochastic branching factor of SigmaZero will increase its performance, if the factor is less than the inherent stochastic branching factor of the environment. This may be worth exploring for future work.
+
+From this project's experiments, we can see that if the stochastic branching factor is at least the inherent stochastic branching factor of the environment, SigmaZero performs better than MuZero, at the cost of greater runtime and space complexity.
+
+### Can MuZero work in stochastic environments?
+Theoretically if we make the hidden state representation size equal to the number of states in the environment's state space, then MuZero would be able to represent any possible set of stochastic states for this environment; similar to how SigmaZero can represent a set of stochastic states in its node sets.
+
+For example if the state space is of size 5, then a feature representation of <img src="https://render.githubusercontent.com/render/math?math=[0.1,0.4,0.15,0,0.35]"> could be interpreted as a 10% chance of being in state 1, 40% chance of being in state 2, 15% chance of being in state 3 and 35% chance of being in state 5. Representing stochastic states this way ensures no loss of information, and an agent using the MuZero algorithm should theoretically be able to learn an optimal policy given a learned dynamics function that captures the true dynamics of the environment.
+
+In environments with large state spaces, explicit representation becomes infeasible, but theoretically increasing the hidden state representation size should increase MuZero's power in modelling stochastic states.
 
 ## Future Work
-* merge similar resulting states together
-* disregard low probability resulting states
-* modify ucb score to factor in depth level of node to control for branching factor exploding
 
-## MuZero Technical Details
-Below is a description of how the MuZero algorithm works in more detail.
-
-### Data structures
-MuZero is comprised of three neural networks: 
-* A representation function, <img src="https://render.githubusercontent.com/render/math?math=h(o_t) \rightarrow s^0">, which given an observation <img src="https://render.githubusercontent.com/render/math?math=o_t"> from the environment at time step <img src="https://render.githubusercontent.com/render/math?math=t">, outputs the hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^0"> of the observation at hypothetical time step <img src="https://render.githubusercontent.com/render/math?math=0"> (this hidden state will be used as the root node in MCTS, so its hypothetical time step is zero)
-	* The representation function is used in tandem with the dynamics function to represent the environment's state in whatever way the algorithm finds useful in order to make accurate predictions for the reward, value and policy
-* A dynamics function, <img src="https://render.githubusercontent.com/render/math?math=g(s^k,a^{k%2B1}) \rightarrow s^{k%2B1},r^{k%2B1}">, which given a hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^k"> at hypothetical time step <img src="https://render.githubusercontent.com/render/math?math=k"> and action <img src="https://render.githubusercontent.com/render/math?math=a^{k%2B1}"> at hypothetical time step <img src="https://render.githubusercontent.com/render/math?math=k%2B1">, outputs the predicted resulting hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^{k%2B1}"> and transition reward <img src="https://render.githubusercontent.com/render/math?math=r^{k%2B1}"> at hypothetical time step <img src="https://render.githubusercontent.com/render/math?math=k%2B1">
-	* The dynamics function is the learned transition model, which allows MuZero to utilize MCTS and plan hypothetical future actions on future board states
-* A prediction function, <img src="https://render.githubusercontent.com/render/math?math=f(s^k) \rightarrow p^k,v^k">, which given a hidden state representation <img src="https://render.githubusercontent.com/render/math?math=s^k">, outputs the predicted policy distribution over actions <img src="https://render.githubusercontent.com/render/math?math=p^k"> and value <img src="https://render.githubusercontent.com/render/math?math=v^k"> at hypothetical time step <img src="https://render.githubusercontent.com/render/math?math=k">
-	* The prediction function is used to limit the search breadth by using the policy output to prioritize MCTS to search for more promising actions, and limit the search depth by using the value output as a substitute for a Monte Carlo rollout
-
-A replay buffer is used to store the history of played games, and will be sampled from during training.
-
-### Self-play
-At every time step during self-play, the environment's current state is passed into MuZero's representation function, which outputs the hidden state representation of the current state. Monte Carlo Tree Search is then performed for a number of simulations specified in the config parameter. 
-
-In each simulation of MCTS, we start at the root node and traverse the tree until a leaf node (non-expanded node) is selected. Selection of nodes is based on a modified [UCB score](https://en.wikipedia.org/wiki/Monte_Carlo_tree_search#Exploration_and_exploitation) that is dependent on the mean action Q-value and prior probability given by the prediction function (more detail can be found in Appendix B of the [MuZero](https://arxiv.org/pdf/1911.08265.pdf) paper). The mean action Q-value is min-max normalized to account for environments where the value is unbounded.
-
-The leaf node is then expanded by passing the parent node's hidden state representation and the corresponding action into the dynamics function, which outputs the hidden state representation and transition reward for the leaf node.
-
-The leaf node's hidden state representation is then passed into the prediction function, which outputs a policy distribution that serves as the prior probability for the leaf node's child nodes, and a value which is meant to be the predicted value of a "Monte Carlo rollout".
-
-Finally, this predicted value is backpropagated up the tree, resulting in all nodes in the search path of the current simulation updating their mean action Q-values. The min and max values used in min-max normalization are updated if any of the nodes in the search path have new mean action Q-values that exceed the min-max bounds.
-
-![Alt text](assets/muzero_mcts1.PNG)
-
-Once the simulations are finished, an action is sampled from the distribution of visit counts of every child node of the root node. A temperature parameter controls the level of exploration when sampling actions. Set initially high to encourage exploration, the temperature is gradually reduced throughout self-play to eventually make action selection more greedy. The action selected is then executed in the environment and MCTS is conducted on the environment's next state until termination.
-
-![Alt text](assets/muzero_mcts2.PNG)
-
-### Training
-At the end of every game of self-play, MuZero adds the game history to the replay buffer and samples a batch to train on. The game history contains the state, action and reward history of the game, as well as the MCTS policy and value results for each time step.
-
-For each game, a random position is sampled and is unrolled a certain amount of timesteps specified in the config parameter. The sampled position is passed into the representation function to get the hidden state representation. For each unrolled timestep, the corresponding action taken during the actual game of self-play is passed into the dynamics function, along with the current hidden state representation. In addition, each hidden state representation is passed into the prediction function to get the corresponding predicted policy and value for each timestep.
-
-The predicted rewards outputted by the dynamics function are matched against the actual transition rewards received during the game of self-play. The predicted policies outputted by the prediction function are matched against the policies outputted by the MCTS search. 
-
-The "ground truth" for the value is calculated using <img src="https://render.githubusercontent.com/render/math?math=n">-step bootstrapping, where <img src="https://render.githubusercontent.com/render/math?math=n"> is specified in the config parameter. If <img src="https://render.githubusercontent.com/render/math?math=n"> is a number larger than the episode length, then the value is calculated using the actual discounted transition rewards of the game of self-play, and reduces to the Monte Carlo return. If <img src="https://render.githubusercontent.com/render/math?math=n"> is less than or equal to the episode length, then the discounted transition rewards are used until the <img src="https://render.githubusercontent.com/render/math?math=n">-step, at which point the value outputted by the MCTS search (i.e. the mean action Q-value of the root node) is used to bootstrap. The predicted values outputted by the prediction function are then matched against these calculated values.
-
-The three neural networks are then trained end-to-end, matching the predicted rewards, values and policies with the "ground truth" rewards, values and policies. L2 regularization is used as well.
-
-![Alt text](assets/muzero_train.PNG)
-
-(MuZero diagrams can be found on page 3 of their [paper](https://arxiv.org/pdf/1911.08265.pdf))
+Here is a list of possible ideas for future work in extending this project:
+* find a way to make SigmaZero computationally more efficient
+	* merge similar resulting states together
+	* disregard low probability resulting states
+	* modify UCB score to factor in depth level of node set to control for how fast the size of hidden state representations increase in the search tree
+* try StochasticWorld environments with different configurations
+	*  higher stochastic branching factors
+	* more skewed transition probabilities
+	* sampling transition rewards from a non-uniform distribution
+* use a bigger hidden state representation size for MuZero and compare its performance with the results of this project's experiments
+* use more simulations for MCTS and see if that affects the results for both MuZero and SigmaZero
 
 ## File Descriptions
-* `classes.py` holds data structure classes used by MuZero
-* `main.py` holds functions for self-play, MCTS, training and testing
-	* `self_play` is the main function to call; it initiates self-play and trains MuZero
-* `models/` holds saved neural network models used by MuZero
-* `replay_buffers/` holds replay buffer instances, saved during self-play
-* `recordings/` holds video file recordings of game renders when testing MuZero
+* `muzero / sigmazero`: there are identical Python files in the `muzero` and `sigmazero` directory; their functions are primarily the same except applying the MuZero and SigmaZero algorithm respectively:
+	* `classes.py` holds data structure classes used by MuZero / SigmaZero
+	* `stochastic_world.py` holds the data structure class for the StochasticWorld environment
+	* `main.py` holds functions for self-play, MCTS / SigmaZero, training and testing
+		* `self_play` is the main function to call; it initiates self-play and trains MuZero / SigmaZero
+	* `test_rewards` holds the average rewards received by the agent when it is periodically tested during training
+	* `env_configs` holds the specific StochasticWorld environment configuration used by both MuZero and SigmaZero
 * `assets/` holds media files used in this `README.md`
 * `requirements.txt` holds all required dependencies, which can be installed by typing `pip install -r requirements.txt` in the command line
 
 For this project, I'm using Python 3.7.4.
-
-## Additional Resources
-* [Full interview with David Silver, who led the AlphaGo team](https://www.youtube.com/watch?v=uPUEq8d73JI)
-* [DeepMind AlphaGo webpage](https://deepmind.com/research/case-studies/alphago-the-story-so-far)
-* [DeepMind MuZero webpage](https://deepmind.com/blog/article/muzero-mastering-go-chess-shogi-and-atari-without-rules)
-* [Playlist of Youtube videos related to AlphaGo](https://www.youtube.com/playlist?list=PLqYmG7hTraZBy7J_4ynYPc0Ml1RUGcLmD)
-* [A Youtube video describing an overview of the MuZero algorithm](https://www.youtube.com/watch?v=szbvm8aNDxw)
-* Link to MuZero pseudocode ([v1](https://arxiv.org/src/1911.08265v1/anc/pseudocode.py) and [v2](https://arxiv.org/src/1911.08265v2/anc/pseudocode.py))
