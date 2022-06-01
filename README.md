@@ -137,7 +137,7 @@ Rather than a list of nodes, the node set is implemented as a single class objec
 We now look to test the SigmaZero algorithm on a stochastic environment and compare its performance with MuZero.
 
 A toy example StochasticWorld environment is used for this experiment. The StochasticWorld environment has the following parameters that can be configured:
-* `num_states`: the number of states in the environment's action space
+* `num_states`: the number of states in the environment's state space
 * `num_actions`: the number of actions in the environment's action space
 * `timestep_limit`: the number of time steps in an episode before termination
 * `stochastic_branching_factor`: the number of possible states that can result from applying an action to a state (this value defines the true branching factor of the environment, whereas the hyperparameter <img src="https://render.githubusercontent.com/render/math?math=b"> is an approximation used by the model)
